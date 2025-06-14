@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+       
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+       
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+       
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+       
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 0;
+                padding: 0 20px 20px 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                color: #333;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: auto;
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 0px;
+                margin-top: 0px;
+                color: #fff;
+            }
+
+            .status-indicator {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                margin-left: 5px;
+                vertical-align: middle;
+            }
+
+            .status-online {
+                background: #4caf50;
+            }
+
+            .status-offline {
+                background: #f44336;
+            }
+
+            .dashboard {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 20px;
+            }
+
+            .chart-container {
+                background: white;
+                border-radius: 15px;
+                padding: 10px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                margin-bottom: 4px;
+            }
+
+            .chart-title {
+                font-size: 16px;      
+                font-weight: 600;
+                margin-bottom: 20px;
+                text-align: center;  
+                color: #333;
+                margin-top: 0px;
+                margin-bottom: 4px; 
+            }
+
+            .chart {
+                width: 100%;
+                height: 450px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+            }
+
+            .info-panel {
+                background: white;
+                border-radius: 15px;
+                padding: 15px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                text-align: center;
+            }
+
+            .info-item {
+                margin: 0 auto;
+                margin-bottom: 10px;
+                margin-top: 0px;
+            }
+
+            .info-item span {
+                font-weight: 600;
+                margin-right: 5px;
+            }
+
+            .info-label {
+                display: block;
+                font-size: 0.9em;
+                color: #666;
+            }
+
+            .info-value {
+                font-size: 1.1em;
+                color: #333;
+            }
+
+            @media (max-width: 768px) {
+                .dashboard {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            #map {
+                height: 300px;
+                width: 100%;
+            }
+
+            .status-indicator.status-online { background-color: green; }
+            .status-indicator.status-offline { background-color: red; }
+            .status-indicator { 
+                display: inline-block; 
+                width: 10px; height: 10px; 
+                border-radius: 50%; 
+                margin-left: 10px; 
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <div class="header">
+            <h2>
+                Monitoramento de sensores em tempo real
+                <span id="status-indicator" class="status-indicator status-online"></span>
+            </h2>
+        </div>
+
+        <div style="justify-content: center; gap: 20px;">
+            <div class="info-panel">
+                <!-- Mapa do GPS -->
+                <div class="info-item">
+                    <span class="info-label">Módulo GPS</span>
+                </div>
+                <div class="info-item" style="display: flex; gap: 20px; justify-content: center;">
+                    <div>
+                        <span class="info-label">Latitude:
+                            <span id="latitude-value" class="info-value">--</span>
+                        </span>
+                    </div>
+                    <div>
+                        <span class="info-label">Longitude:
+                            <span id="longitude-value" class="info-value">--</span>
+                        </span>
+                    </div>
+                    <div>
+                        <span class="info-label">Total de registros:
+                            <span id="total-rows" class="info-value">--</span>
+                        </span>
+                    </div>
+                    <div>
+                        <span class="info-label">Última atualização:
+                            <span id="last-update" class="info-value">--</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div id="map"></div>
+            </div>
+
+            <!-- Gráficos de posição, velocidade e aceleração -->
+            <div class="info-panel" style="display: flex; justify-content: space-between;">
+                <!-- Posições -->
+                <div class="info-item" style="width: 32%;">
+                    <div class="chart-container">
+                        <h4 class="chart-title">Posições</h4>
+                        <canvas id="positionChart"></canvas>
+                    </div>
+                </div>
+                <!-- Velocidades -->
+                <div class="info-item" style="width: 32%;">
+                    <div class="chart-container">
+                        <h4 class="chart-title">Velocidades</h4>
+                        <canvas id="velocityChart"></canvas>
+                    </div>
+                </div>  
+                <!-- Acelerações -->
+                <div class="info-item" style="width: 32%;">
+                    <div class="chart-container">
+                        <h4 class="chart-title">Acelerações</h4>
+                        <canvas id="accelerationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            //
+            // GPS
+            //
+            let map;
+            let dots = [];
+            let polyline = [];
+
+            
+            function createMap() {
+                map = L.map('map').setView([-26.235690295860696, -48.88468918332882], 20);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    maxNativeZoom: 19,
+                    maxZoom: 25
+                }).addTo(map);
+            }
+
+
+            function updateMap(latitudes, longitudes) {
+                // Remove marcadores antigos
+                for (let dot of dots) {
+                    map.removeLayer(dot);
+                }
+                dots = [];
+
+                // Adiciona novos marcadores com opacidade e raio de acordo com idade do ponto
+                for (let i = 0; i < latitudes.length; i++) {
+                    const ageFactor = (i + 1) / latitudes.length;  
+                    const radius = 5 * ageFactor;
+                    const opacity = 0.25 + 0.55 * ageFactor;
+                    const r = Math.round(255 + (255 - 255) * ageFactor);
+                    const g = Math.round(140 + (0 - 140) * ageFactor);
+                    const b = Math.round(140 + (0 - 140) * ageFactor);
+
+                    const dot = L.circleMarker([latitudes[i], longitudes[i]], {
+                        radius: radius,
+                        color: `rgba(${r}, ${g}, ${b}, ${opacity})`,
+                        fillColor: `rgba(${r}, ${g}, ${b}, ${opacity})`,
+                        fillOpacity: opacity
+                    }).addTo(map);
+
+                    dot.bindPopup(`Ponto ${i + 1}:<br>Lat: ${latitudes[i].toFixed(6)}<br>Lon: ${longitudes[i]}`);
+                    dots.push(dot);
+                }
+
+                // Remove polyline anterior
+                if (polyline) {
+                    for (let pl of polyline) {
+                        map.removeLayer(pl);
+                    }
+                }
+                polyline = [];
+
+                // Adiciona linhas conectando os dots
+                for (let i = 0; i < latitudes.length - 1; i++) {
+                    const ageFactor = (i + 1) / latitudes.length;
+                    const opacity = 0.25 + 0.55 * ageFactor;
+                    const weight = 3 + 2 * ageFactor;
+                    
+                    const r = Math.round(150 + (0 - 150) * ageFactor);
+                    const g = Math.round(240 + (0 - 240) * ageFactor);
+                    const b = Math.round(155 + (175 - 155) * ageFactor);
+
+                    const segment = L.polyline(
+                        [
+                            [latitudes[i], longitudes[i]],
+                            [latitudes[i + 1], longitudes[i + 1]]
+                        ],
+                        {
+                            color: `rgba(${r}, ${g}, ${b}, ${opacity})`,
+                            weight: weight,
+                            opacity: opacity
+                        }
+                    ).addTo(map);
+
+                    polyline.push(segment);
+                }
+            }
+
+            //
+            // Posicao, velocidade e aceleracao
+            //
+            const labels = [];
+
+            const chartCornerTextPlugin = {
+                id: 'cornerTextPlugin',
+                afterDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const datasetX = chart.data.datasets[0].data;
+                    const datasetY = chart.data.datasets[1].data;
+
+                    if (!datasetX.length || !datasetY.length) return;
+
+                    const lastX = datasetX[datasetX.length - 1].toFixed(2);
+                    const lastY = datasetY[datasetY.length - 1].toFixed(2);
+
+                    ctx.save();
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillStyle = '#666';
+
+                    // Escreve o texto no canto superior direito do gráfico
+                    ctx.fillText(`X: ${lastX}`, chart.chartArea.right - 60, chart.chartArea.top + 15);
+                    ctx.fillText(`Y: ${lastY}`, chart.chartArea.right - 60, chart.chartArea.top + 30);
+
+                    ctx.restore();
+                }
+            };
+
+
+            function createChart(ctx, dataX, dataY, colorX, colorY) {
+                return new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'X',
+                            data: dataX,
+                            borderColor: colorX,
+                            backgroundColor: colorX + '33',
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Y',
+                            data: dataY,
+                            borderColor: colorY,
+                            backgroundColor: colorY + '33',
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        animation: false,
+                        responsive: true,
+                        plugins: {
+                            legend: { display: true },
+                            title: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                // title: { display: true, text: 'Tempo' }
+                            },
+                            y: { display: true }
+                        }
+                    },
+                    plugins: [chartCornerTextPlugin] 
+                }); 
+            }
+
+            
+            function updateChart(chart, timestamps, newDataX, newDataY) {
+                if (!chart) {
+                    console.error("Chart não definido:", chart);
+                    return;
+                }
+                
+                chart.data.labels = timestamps;
+                chart.data.datasets[0].data = newDataX;
+                chart.data.datasets[1].data = newDataY;
+                chart.update();
+            }
+
+            
+            async function fetchSensorData() {
+                try {
+                    const response = await fetch('/api/data/');
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        console.error('Erro API:', data.error);
+                        document.getElementById('status').innerText = 'Erro ao carregar dados';
+                        return;
+                    }
+
+                    if (data.data.length === 0) {
+                        document.getElementById('status').innerText = 'Sem dados disponíveis';
+                        return;
+                    }
+
+                    // Atualiza indicador de status
+                    const statusEl = document.getElementById('status-indicator');
+                    if (data.online) {
+                        statusEl.classList.remove('status-offline');
+                        statusEl.classList.add('status-online');
+                    } else {
+                        statusEl.classList.remove('status-online');
+                        statusEl.classList.add('status-offline');
+                    }
+
+                    if (data.latest) {
+                        document.getElementById('latitude-value').textContent = (data.latest.latitude ?? 0).toFixed(6);
+                        document.getElementById('longitude-value').textContent = (data.latest.longitude ?? 0).toFixed(6);
+                        document.getElementById('last-update').textContent = new Date(data.latest.timestamp ?? 0).toLocaleTimeString('pt-BR');
+                        // document.getElementById('positionX-value').textContent = (data.latest.positionX ?? 0).toFixed(2);
+                        // document.getElementById('positionY-value').textContent = (data.latest.positionY ?? 0).toFixed(2);
+                        // document.getElementById('velocityX-value').textContent = (data.latest.velocityX ?? 0).toFixed(2);
+                        // document.getElementById('velocityY-value').textContent = (data.latest.velocityY ?? 0).toFixed(2);
+                        // document.getElementById('accelerationX-value').textContent = (data.latest.accelerationX ?? 0).toFixed(2);
+                        // document.getElementById('accelerationY-value').textContent = (data.latest.accelerationY ?? 0).toFixed(2);
+                    }
+                    
+                    const latitudes = data.data.map(d => d.latitude);
+                    const longitudes = data.data.map(d => d.longitude);
+                    const timestamps = data.data.map(d => new Date(d.timestamp).toLocaleTimeString('pt-BR'));
+
+                    const positionX = data.data.map(d => d.positionX);
+                    const positionY = data.data.map(d => d.positionY);
+                    const velocityX = data.data.map(d => d.velocityX);
+                    const velocityY = data.data.map(d => d.velocityY);
+                    const accelerationX = data.data.map(d => d.accelerationX);
+                    const accelerationY = data.data.map(d => d.accelerationY);
+
+                    // Atualiza mapa
+                    updateMap(latitudes, longitudes);
+
+                    // Atualiza plots
+                    updateChart(positionChart, timestamps, positionX, positionY);
+                    updateChart(velocityChart, timestamps, velocityX, velocityY);
+                    updateChart(accelerationChart, timestamps, accelerationX, accelerationY);
+
+                    // Atualiza contadores no painel
+                    document.getElementById('total-rows').textContent = data.total_rows;
+                } 
+                catch (error) { 
+                    console.error('Erro ao buscar dados:', error); 
+                }
+            }
+
+            // Criar gráficos
+            createMap();
+
+            let positionChart = createChart(document.getElementById('positionChart'), [], [], '#f00738', '#ff9aa2');
+            let velocityChart = createChart(document.getElementById('velocityChart'), [], [], '#36a2eb', '#a3d5ff');
+            let accelerationChart = createChart(document.getElementById('accelerationChart'), [], [], '#4bc0c0', '#9fffc0');
+            
+            setInterval(fetchSensorData, 250); 
+        </script>
+    </body>
+</html>
