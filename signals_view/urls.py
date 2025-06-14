@@ -16,9 +16,13 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+
+from . import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", admin.site.urls),
+    path("", views.dashboard, name="dashboard"),
+    path("api/data/", views.sensor_data_api, name="sensor_data_api"),
+    path("udp/", include("udp_server.urls")),
 ]

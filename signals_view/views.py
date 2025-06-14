@@ -1,8 +1,6 @@
 import csv
-import json
 import os
 from collections import deque
-from datetime import datetime
 
 from django.conf import settings
 from django.http import JsonResponse
@@ -11,7 +9,7 @@ from django.shortcuts import render
 
 def dashboard(request):
     """Main dashboard view"""
-    return render(request, "sensors/dashboard.html")
+    return render(request, "signals/dashboard.html")
 
 
 def sensor_data_api(request):
