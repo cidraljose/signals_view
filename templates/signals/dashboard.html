@@ -317,44 +317,34 @@
                 id: 'cornerTextPlugin',
                 afterDraw: (chart) => {
                     const ctx = chart.ctx;
-                    const datasetX = chart.data.datasets[0].data;
-                    const datasetY = chart.data.datasets[1].data;
+                    const dataset = chart.data.datasets[0].data;
 
-                    if (!datasetX.length || !datasetY.length) return;
+                    if (!dataset.length) return;
 
-                    const lastX = datasetX[datasetX.length - 1].toFixed(2);
-                    const lastY = datasetY[datasetY.length - 1].toFixed(2);
+                    const last = dataset[dataset.length - 1].toFixed(2);
 
                     ctx.save();
                     ctx.font = 'bold 12px sans-serif';
                     ctx.fillStyle = '#666';
 
                     // Escreve o texto no canto superior direito do gráfico
-                    ctx.fillText(`X: ${lastX}`, chart.chartArea.right - 60, chart.chartArea.top + 15);
-                    ctx.fillText(`Y: ${lastY}`, chart.chartArea.right - 60, chart.chartArea.top + 30);
+                    ctx.fillText(`X: ${last}`, chart.chartArea.right - 60, chart.chartArea.top + 15);
 
                     ctx.restore();
                 }
             };
 
 
-            function createChart(ctx, dataX, dataY, colorX, colorY) {
+            function createChart(ctx, data, color) {
                 return new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
                             label: 'X',
-                            data: dataX,
-                            borderColor: colorX,
-                            backgroundColor: colorX + '33',
-                            pointRadius: 0
-                        },
-                        {
-                            label: 'Y',
-                            data: dataY,
-                            borderColor: colorY,
-                            backgroundColor: colorY + '33',
+                            data: data,
+                            borderColor: color,
+                            backgroundColor: color + '33',
                             pointRadius: 0
                         }]
                     },
@@ -362,15 +352,14 @@
                         animation: false,
                         responsive: true,
                         plugins: {
-                            legend: { display: true },
+                            legend: { display: false },
                             title: { display: false }
                         },
                         scales: {
                             x: {
                                 display: true,
-                                // title: { display: true, text: 'Tempo' }
+                                title: { display: true, text: 'Tempo' }
                             },
-                            y: { display: true }
                         }
                     },
                     plugins: [chartCornerTextPlugin] 
@@ -378,15 +367,14 @@
             }
 
             
-            function updateChart(chart, timestamps, newDataX, newDataY) {
+            function updateChart(chart, timestamps, newData) {
                 if (!chart) {
                     console.error("Chart não definido:", chart);
                     return;
                 }
                 
                 chart.data.labels = timestamps;
-                chart.data.datasets[0].data = newDataX;
-                chart.data.datasets[1].data = newDataY;
+                chart.data.datasets.data = newData;
                 chart.update();
             }
 
@@ -421,32 +409,22 @@
                         document.getElementById('latitude-value').textContent = (data.latest.latitude ?? 0).toFixed(6);
                         document.getElementById('longitude-value').textContent = (data.latest.longitude ?? 0).toFixed(6);
                         document.getElementById('last-update').textContent = new Date(data.latest.timestamp ?? 0).toLocaleTimeString('pt-BR');
-                        // document.getElementById('positionX-value').textContent = (data.latest.positionX ?? 0).toFixed(2);
-                        // document.getElementById('positionY-value').textContent = (data.latest.positionY ?? 0).toFixed(2);
-                        // document.getElementById('velocityX-value').textContent = (data.latest.velocityX ?? 0).toFixed(2);
-                        // document.getElementById('velocityY-value').textContent = (data.latest.velocityY ?? 0).toFixed(2);
-                        // document.getElementById('accelerationX-value').textContent = (data.latest.accelerationX ?? 0).toFixed(2);
-                        // document.getElementById('accelerationY-value').textContent = (data.latest.accelerationY ?? 0).toFixed(2);
                     }
                     
                     const latitudes = data.data.map(d => d.latitude);
                     const longitudes = data.data.map(d => d.longitude);
                     const timestamps = data.data.map(d => new Date(d.timestamp).toLocaleTimeString('pt-BR'));
-
-                    const positionX = data.data.map(d => d.positionX);
-                    const positionY = data.data.map(d => d.positionY);
-                    const velocityX = data.data.map(d => d.velocityX);
-                    const velocityY = data.data.map(d => d.velocityY);
-                    const accelerationX = data.data.map(d => d.accelerationX);
-                    const accelerationY = data.data.map(d => d.accelerationY);
+                    const position = data.data.map(d => d.position);
+                    const velocity = data.data.map(d => d.velocity);
+                    const acceleration = data.data.map(d => d.acceleration);
 
                     // Atualiza mapa
                     updateMap(latitudes, longitudes);
 
                     // Atualiza plots
-                    updateChart(positionChart, timestamps, positionX, positionY);
-                    updateChart(velocityChart, timestamps, velocityX, velocityY);
-                    updateChart(accelerationChart, timestamps, accelerationX, accelerationY);
+                    updateChart(positionChart, timestamps, position);
+                    updateChart(velocityChart, timestamps, velocity);
+                    updateChart(accelerationChart, timestamps, acceleration);
 
                     // Atualiza contadores no painel
                     document.getElementById('total-rows').textContent = data.total_rows;
@@ -459,9 +437,9 @@
             // Criar gráficos
             createMap();
 
-            let positionChart = createChart(document.getElementById('positionChart'), [], [], '#f00738', '#ff9aa2');
-            let velocityChart = createChart(document.getElementById('velocityChart'), [], [], '#36a2eb', '#a3d5ff');
-            let accelerationChart = createChart(document.getElementById('accelerationChart'), [], [], '#4bc0c0', '#9fffc0');
+            let positionChart = createChart(document.getElementById('positionChart'), [], '#f00738');
+            let velocityChart = createChart(document.getElementById('velocityChart'), [], '#36a2eb');
+            let accelerationChart = createChart(document.getElementById('accelerationChart'), [], '#4bc0c0');
             
             setInterval(fetchSensorData, 250); 
         </script>

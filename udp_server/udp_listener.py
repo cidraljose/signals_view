@@ -5,7 +5,6 @@ from datetime import datetime
 
 from django.conf import settings
 
-# 🔥 Número máximo de linhas antes de limpar o terminal
 MAX_LOGS = 15
 
 logs = []
@@ -18,8 +17,6 @@ class UDPServer(threading.Thread):
         self.port = port
         self.running = False
         self.sock = None
-
-    def write(self): ...
 
     def stop(self):
         self.running = False
@@ -39,12 +36,16 @@ class UDPServer(threading.Thread):
                 [
                     "latitude",
                     "longitude",
-                    "positionX",
-                    "positionY",
-                    "velocityX",
-                    "velocityY",
-                    "accelerationX",
-                    "accelerationY",
+                    "position",
+                    # "positionX",
+                    # "positionY",
+                    "velocity",
+                    # "velocityX",
+                    # "velocityY",
+                    "acceleration",
+                    "angulo",
+                    # "accelerationX",
+                    # "accelerationY",
                     "timestamp",
                 ]
             )
