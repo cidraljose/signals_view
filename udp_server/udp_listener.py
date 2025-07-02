@@ -37,15 +37,8 @@ class UDPServer(threading.Thread):
                     "latitude",
                     "longitude",
                     "position",
-                    # "positionX",
-                    # "positionY",
                     "velocity",
-                    # "velocityX",
-                    # "velocityY",
                     "acceleration",
-                    "angulo",
-                    # "accelerationX",
-                    # "accelerationY",
                     "timestamp",
                 ]
             )

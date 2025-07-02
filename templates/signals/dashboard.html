@@ -374,11 +374,10 @@
                 }
                 
                 chart.data.labels = timestamps;
-                chart.data.datasets.data = newData;
+                chart.data.datasets[0].data = newData;
                 chart.update();
             }
 
-            
             async function fetchSensorData() {
                 try {
                     const response = await fetch('/api/data/');

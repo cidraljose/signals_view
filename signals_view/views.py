@@ -45,22 +45,14 @@ def sensor_data_api(request):
             recent_rows = rows[-n_rows:] if len(rows) > n_rows else rows
 
             for i, row in enumerate(recent_rows):
-                if len(row) >= 9:
+                if len(row) >= 6:
                     try:
                         latitude_val = float(row[0])
                         longitude_val = float(row[1])
                         position_val = float(row[2])
-                        # positionX_val = float(row[2])
-                        # positionY_val = float(row[3])
                         velocity_val = float(row[3])
-                        # velocityX_val = float(row[4])
-                        # velocityY_val = float(row[5])
                         acceleration_val = float(row[4])
-                        # accelerationX_val = float(row[6])
-                        # accelerationY_val = float(row[7])
-                        angulo_val = int(row[5])
-                        timestamp_str = row[6]
-                        # timestamp_str = row[8]
+                        timestamp_str = row[5]
 
                         # ➕ Opcional: padroniza o formato do timestamp
                         # Exemplo: se vier no formato "01/06/2025 15:23", converte:
@@ -74,15 +66,8 @@ def sensor_data_api(request):
                                 "longitude": longitude_val,
                                 "timestamp": timestamp_val,
                                 "position": position_val,
-                                # "positionX": positionX_val,
-                                # "positionY": positionY_val,
                                 "velocity": velocity_val,
-                                # "velocityX": velocityX_val,
-                                # "velocityY": velocityY_val,
                                 "acceleration": acceleration_val,
-                                # "accelerationX": accelerationX_val,
-                                # "accelerationY": accelerationY_val,
-                                "anguloZ": angulo_val,
                             }
                         )
 
@@ -92,15 +77,8 @@ def sensor_data_api(request):
                             "longitude": longitude_val,
                             "timestamp": timestamp_val,
                             "position": position_val,
-                            # "positionX": positionX_val,
-                            # "positionY": positionY_val,
                             "velocity": velocity_val,
-                            # "velocityX": velocityX_val,
-                            # "velocityY": velocityY_val,
                             "acceleration": acceleration_val,
-                            # "accelerationX": accelerationX_val,
-                            # "accelerationY": accelerationY_val,
-                            "anguloZ": angulo_val,
                         }
                     except (ValueError, IndexError):
                         continue
