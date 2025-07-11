@@ -5,7 +5,7 @@ from datetime import datetime
 
 from django.conf import settings
 
-MAX_LOGS = 15
+MAX_LOGS = 200
 
 logs = []
 
@@ -30,6 +30,7 @@ class UDPServer(threading.Thread):
         self.sock.bind((self.host, self.port))
         logs.append(f"Listening on {self.host}:{self.port}")
 
+        # Apaga conteudo do csv
         with open(settings.CSV_FILE_PATH, mode="w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(
