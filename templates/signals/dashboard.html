@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -5,11 +6,9 @@
        
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
        
-        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-       
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-       
-        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <link rel="stylesheet" href="{% static 'leaflet/leaflet.css' %}" />
+        <script src="{% static 'chartjs/dist/chart.umd.min.js' %}"></script>
+        <script src="{% static 'leaflet/leaflet.js' %}"></script>
 
         <style>
             body {
